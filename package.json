@@ -1,0 +1,29 @@
+{
+  "name": "mitm-node-proxy",
+  "version": "0.0.1a",
+  "description": "simple MITM proxy based on node and node-http-proxy",
+  "main": "proxy.js",
+  "dependencies": {
+    "http-proxy": "^1.8.1",
+    "dns": "^0.2.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iAnatoly/mitm-node-proxy.git"
+  },
+  "keywords": [
+    "node",
+    "proxy",
+    "mitm"
+  ],
+  "author": "Anatoly",
+  "license": "APACHE2.0",
+  "bugs": {
+    "url": "https://github.com/iAnatoly/mitm-node-proxy/issues"
+  },
+  "homepage": "https://github.com/iAnatoly/mitm-node-proxy"
+}
