@@ -9,12 +9,20 @@ var
 	dns = require('dns'),
 	fs = require('fs');
 
-
+// avoid HSTS to allow SSL MITM
+// alas, this does not work with facebook.com, since it is 'pre-loaded'.
+// don't you hate this crap?
 var proxy = httpProxy.createProxyServer({});
 proxy.on('proxyReq', function(proxyReq, req, res, options) {
 	res.removeHeader('Strict-Transport-Security');
 	res.removeHeader('Non-Authoritative-Reason');
 	//console.log(res.headers);
+});
+
+// handle proxy request, since node-http-proxy creators want us to hanle errors directly
+// see https://github.com/nodejitsu/node-http-proxy/blob/master/lib/http-proxy/index.js @114
+proxy.on('error', function(error) {
+	console.log('error: '+error);
 });
 
 var httpHelper = new function () {
@@ -39,7 +47,7 @@ var httpHelper = new function () {
 var policyEngine = new function () {
 	this.acl = {
 		'reddit.com' : {
-			whitelist: [ '^\/message\/', 'microsoft', 'apple', 'bayarea', 'programming', 'finance', 'science', 'investing', '^\/api\/', '^/$' ]
+			whitelist: [ '^\/message\/', '^\/r\/microsoft', '^\/r\/apple', '^\/r\/bayarea', '^\/r\/programming', '^\/r\/finance', '^\/r\/science', '^\/r\/investing', '^\/api\/', '^/$' ]
 		},
 		'facebook.com' : { whitelist: [ '.' ] },
 		'vk.com' : {},
@@ -49,6 +57,7 @@ var policyEngine = new function () {
 		for (site in this.acl) {
 			var siteRx = new RegExp(site,'ig');
 			if (request.headers.host.match(siteRx)){
+				console.log('site match: '+request.headers.host+' = '+siteRx);
 				for (wurl in this.acl[site].whitelist){
 					var wurlRx = new RegExp(this.acl[site].whitelist[wurl],'ig');
 					if (request.url.match(wurlRx)) return true;
@@ -73,6 +82,9 @@ function HostParser(hostHeader,isSecure){
 		this.schema = 'https';
 	else
 		this.schema = 'http';
+
+	// I use hosts file to redirect traffic to MITM proxy, so I have to use dns.resolve*	
+	// In order to get the real DNS address of the server
 
 	this.resolveAndProxy = function(request,response) {
 		var target=this.schema + '://';
