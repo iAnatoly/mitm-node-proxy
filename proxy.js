@@ -1,5 +1,5 @@
 var 	
-	port=80, 
+	httpPort=80, 
 	securePort=443;
 
 var 
@@ -73,7 +73,7 @@ var policyEngine = new function () {
 	}; 
 }
 
-function HostParser(hostHeader,isSecure){
+var HostParser = function (hostHeader,isSecure){
 	var hostAndPort=hostHeader.split(':');
 	this.host = hostAndPort[0];
 	if (hostAndPort.length>1)
@@ -82,30 +82,32 @@ function HostParser(hostHeader,isSecure){
 		this.schema = 'https';
 	else
 		this.schema = 'http';
+}
 
-	// I use hosts file to redirect traffic to MITM proxy, so I have to use dns.resolve*	
-	// In order to get the real DNS address of the server
+// I use hosts file to redirect traffic to MITM proxy, so I have to use dns.resolve*	
+// In order to get the real DNS address of the server
+HostParser.prototype.resolveAndProxy = function(request,response) {
+	var target = this.schema + '://';
+	var port = this.port;
 
-	this.resolveAndProxy = function(request,response) {
-		var target=this.schema + '://';
-		dns.resolve4(this.host, function (err, addresses) {
-			if (err) throw err;
-			target += addresses[0]; // TODO: port
-			console.log('proxying request to: '+target);
+	dns.resolve4(this.host, function (err, addresses) {
+		if (err) throw err;
+		
+		target += addresses[0]; // TODO: port
+		if (port) target+=":"+port;
 
-			proxy.web(
-				request, 
-				response, 
-				{ 
-					target: target,
-					secure: false
-				}
-			);
-		});
-	}
-}	
-	
- 
+		console.log('proxying request to: '+target);
+
+		proxy.web(
+			request, 
+			response, 
+			{ 
+				target: target,
+				secure: false
+			}
+		);
+	});
+};
 
 var conditionalRedirect = function(req, res, isSecure) {
 	policyEngine.redirectIfAllowed(req,res);
@@ -129,10 +131,11 @@ var options = {
 
 http.createServer(function(req,res){
 	conditionalRedirect(req,res,false);
-}).listen(port);
+}).listen(httpPort);
 
 https.createServer(options,function(req,res){
 	conditionalRedirect(req,res,true);
 }).listen(securePort); 
+
 console.log('listening');
 
